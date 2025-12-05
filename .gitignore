@@ -1,3 +1,8 @@
 # Macbook local file
 .DS_Store
 ansible/.DS_Store
+./terraform
+*.tfstate
+.terraform/
+terraform.tfstate
+terraform.tfstate.*
