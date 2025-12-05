@@ -1,13 +1,10 @@
 - name: Configure Web server
   hosts: server_role_web
-  remote_user: debian       
+  remote_user: admin      
   become: true
-  roles:
-    - frontend
 
 - name: Configure Database server
   hosts: server_role_database
   remote_user: rocky         
   become: true
-  roles:
-    - frontend
+
