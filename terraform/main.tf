@@ -1,114 +1,124 @@
-resource "aws_vpc" "main" {
-  cidr_block           = var.vpc_cidr
-  enable_dns_support   = true
-  enable_dns_hostnames = true
-
-  tags = {
-    Name = "lab-vpc"
-  }
+locals {
+  project_name = "lab_week_14"
 }
 
-resource "aws_internet_gateway" "igw" {
-  vpc_id = aws_vpc.main.id
-
-  tags = {
-    Name = "lab-igw"
-  }
-}
-
-resource "aws_subnet" "public" {
-  vpc_id                  = aws_vpc.main.id
-  cidr_block              = var.public_subnet_cidr
-  map_public_ip_on_launch = true
-
-  tags = {
-    Name = "lab-public-subnet"
-  }
-}
-
-resource "aws_route_table" "public" {
-  vpc_id = aws_vpc.main.id
-
-  route {
-    cidr_block = "0.0.0.0/0"
-    gateway_id = aws_internet_gateway.igw.id
-  }
-
-  tags = {
-    Name = "lab-public-rt"
-  }
-}
-
-resource "aws_route_table_association" "public_assoc" {
-  subnet_id      = aws_subnet.public.id
-  route_table_id = aws_route_table.public.id
-}
-
-resource "aws_security_group" "web_sg" {
-  name        = "lab-web-sg"
-  description = "Allow SSH & HTTP"
-  vpc_id      = aws_vpc.main.id
-
-  ingress {
-    description = "SSH"
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  ingress {
-    description = "HTTP"
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  tags = {
-    Name = "lab-web-sg"
-  }
-}
-
+# Debian 13 AMI (web server)
 data "aws_ami" "debian_13" {
   most_recent = true
-  owners      = ["136693071363"] # Debian official in many regions; adjust if needed
+  owners      = ["136693071363"]
 
   filter {
     name   = "name"
     values = ["debian-13-amd64-*"]
   }
-}
-
-data "aws_ami" "rocky_linux" {
-  most_recent = true
-
-  owners = ["aws-marketplace"]  # Works in every region
 
   filter {
-    name   = "name"
-    values = ["Rocky-9-*-x86_64-*"]
+    name   = "root-device-type"
+    values = ["ebs"]
   }
 
   filter {
-    name   = "architecture"
-    values s= ["x86_64"]
+    name   = "virtualization-type"
+    values = ["hvm"]
   }
 }
 
+# VPC
+resource "aws_vpc" "web" {
+  cidr_block           = "10.0.0.0/16"
+  enable_dns_hostnames = true
 
+  tags = {
+    Name    = "project_vpc"
+    Project = local.project_name
+  }
+}
+
+# Subnet
+resource "aws_subnet" "web" {
+  vpc_id                  = aws_vpc.web.id
+  cidr_block              = "10.0.1.0/24"
+  availability_zone       = "us-west-2a"
+  map_public_ip_on_launch = true
+
+  tags = {
+    Name = "web-subnet"
+  }
+}
+
+# Internet Gateway
+resource "aws_internet_gateway" "web_gw" {
+  vpc_id = aws_vpc.web.id
+
+  tags = {
+    Name = "web-igw"
+  }
+}
+
+# Route table
+resource "aws_route_table" "web" {
+  vpc_id = aws_vpc.web.id
+
+  tags = {
+    Name = "web-rt"
+  }
+}
+
+# Default route
+resource "aws_route" "web_default" {
+  route_table_id         = aws_route_table.web.id
+  destination_cidr_block = "0.0.0.0/0"
+  gateway_id             = aws_internet_gateway.web_gw.id
+}
+
+# Route table association
+resource "aws_route_table_association" "web_assoc" {
+  subnet_id      = aws_subnet.web.id
+  route_table_id = aws_route_table.web.id
+}
+
+# Security group
+resource "aws_security_group" "web" {
+  name        = "allow_ssh_http"
+  description = "Allow SSH and HTTP"
+  vpc_id      = aws_vpc.web.id
+
+  tags = {
+    Name = "web-sg"
+  }
+}
+
+# Allow SSH
+resource "aws_vpc_security_group_ingress_rule" "ssh" {
+  security_group_id = aws_security_group.web.id
+  cidr_ipv4         = "0.0.0.0/0"
+  from_port         = 22
+  to_port           = 22
+  ip_protocol       = "tcp"
+}
+
+# Allow HTTP
+resource "aws_vpc_security_group_ingress_rule" "http" {
+  security_group_id = aws_security_group.web.id
+  cidr_ipv4         = "0.0.0.0/0"
+  from_port         = 80
+  to_port           = 80
+  ip_protocol       = "tcp"
+}
+
+# Allow all egress
+resource "aws_vpc_security_group_egress_rule" "egress" {
+  security_group_id = aws_security_group.web.id
+  cidr_ipv4         = "0.0.0.0/0"
+  ip_protocol       = -1
+}
+
+# Web server (Debian 13)
 resource "aws_instance" "web" {
   ami                    = data.aws_ami.debian_13.id
   instance_type          = "t3.micro"
-  subnet_id              = aws_subnet.public.id
-  vpc_security_group_ids = [aws_security_group.web_sg.id]
+  subnet_id              = aws_subnet.web.id
+  vpc_security_group_ids = [aws_security_group.web.id]
   key_name               = var.ssh_key_name
 
   tags = {
@@ -118,10 +128,10 @@ resource "aws_instance" "web" {
 }
 
 resource "aws_instance" "database" {
-  ami                    = data.aws_ami.rocky_linux.id
+  ami                    = "ami-093bd987f8e53e1f2"  
   instance_type          = "t3.micro"
-  subnet_id              = aws_subnet.public.id
-  vpc_security_group_ids = [aws_security_group.web_sg.id]
+  subnet_id              = aws_subnet.web.id
+  vpc_security_group_ids = [aws_security_group.web.id]
   key_name               = var.ssh_key_name
 
   tags = {
@@ -129,3 +139,4 @@ resource "aws_instance" "database" {
     Role = "Database"
   }
 }
+
