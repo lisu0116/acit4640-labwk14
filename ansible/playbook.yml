@@ -1,0 +1,14 @@
+# Setup Redis and Frontend Servers using roles
+- name: Configure Redis server (Rocky)
+  hosts: server_role_redis_server
+  remote_user: rocky        
+  become: true
+  roles:
+    - redis                
+
+- name: Configure Frontend server (Ubuntu)
+  hosts: server_role_frontend_server
+  remote_user: ubuntu       
+  become: true
+  roles:
+    - frontend              

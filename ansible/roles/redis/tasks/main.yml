@@ -1,0 +1,6 @@
+# Tasks for Redis Servers
+- name: Install redis on Rocky Linux
+  ansible.builtin.dnf:
+    name: redis
+    state: present
+
