@@ -1,10 +1,14 @@
 - name: Configure Web server
-  hosts: server_role_web
+  hosts: server_role_Web
   remote_user: admin      
   become: true
+  roles:
+    - frontend
 
 - name: Configure Database server
-  hosts: server_role_database
+  hosts: server_role_Database
   remote_user: rocky         
   become: true
+  roles:
+    - frontend
 

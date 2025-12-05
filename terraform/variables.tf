@@ -5,7 +5,7 @@ variable "aws_region" {
 
 variable "ssh_key_name" {
   type    = string
-  default = "aws-4640"
+  default = "4640-wk14"
 }
 
 variable "vpc_cidr" {

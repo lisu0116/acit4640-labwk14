@@ -6,3 +6,6 @@ ansible/.DS_Store
 .terraform/
 terraform.tfstate
 terraform.tfstate.*
+key_data
+terraform/tfplan
+terraform/newplan
