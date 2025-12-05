@@ -1,0 +1,62 @@
+- name: Install nginx on Debian-based systems
+  ansible.builtin.apt:
+    name: nginx
+    state: present
+    update_cache: true
+  when: ansible_os_family == "Debian"
+
+- name: Install nginx on RedHat-based systems
+  ansible.builtin.yum:
+    name: nginx
+    state: present
+  when: ansible_os_family == "RedHat"
+
+- name: Ensure nginx is enabled and running
+  ansible.builtin.service:
+    name: nginx
+    state: started
+    enabled: true
+
+- name: Deploy web index.html on Debian-based systems
+  ansible.builtin.copy:
+    src: index_web.html
+    dest: /var/www/html/index.html
+    owner: root
+    group: root
+    mode: '0644'
+  when:
+    - "'server_role_web' in group_names"
+    - ansible_os_family == "Debian"
+
+- name: Deploy web index.html on RedHat-based systems
+  ansible.builtin.copy:
+    src: index_web.html
+    dest: /usr/share/nginx/html/index.html
+    owner: root
+    group: root
+    mode: '0644'
+  when:
+    - "'server_role_web' in group_names"
+    - ansible_os_family == "RedHat"
+
+- name: Deploy database index.html on Debian-based systems
+  ansible.builtin.copy:
+    src: index_db.html
+    dest: /var/www/html/index.html
+    owner: root
+    group: root
+    mode: '0644'
+  when:
+    - "'server_role_database' in group_names"
+    - ansible_os_family == "Debian"
+
+- name: Deploy database index.html on RedHat-based systems
+  ansible.builtin.copy:
+    src: index_db.html
+    dest: /usr/share/nginx/html/index.html
+    owner: root
+    group: root
+    mode: '0644'
+  when:
+    - "'server_role_database' in group_names"
+    - ansible_os_family == "RedHat"

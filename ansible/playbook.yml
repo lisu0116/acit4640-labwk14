@@ -1,14 +1,13 @@
-# Setup Redis and Frontend Servers using roles
-- name: Configure Redis server (Rocky)
-  hosts: server_role_redis_server
-  remote_user: rocky        
+- name: Configure Web server
+  hosts: server_role_web
+  remote_user: debian       
   become: true
   roles:
-    - redis                
+    - frontend
 
-- name: Configure Frontend server (Ubuntu)
-  hosts: server_role_frontend_server
-  remote_user: ubuntu       
+- name: Configure Database server
+  hosts: server_role_database
+  remote_user: rocky         
   become: true
   roles:
-    - frontend              
+    - frontend
